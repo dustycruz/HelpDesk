@@ -189,7 +189,7 @@
             label5.Location = new Point(11, 160);
             label5.Margin = new Padding(2, 0, 2, 0);
             label5.Name = "label5";
-            label5.Size = new Size(60, 15);
+            label5.Size = new Size(61, 15);
             label5.TabIndex = 6;
             label5.Text = "Assign To:";
             // 
@@ -245,7 +245,7 @@
             label2.Location = new Point(11, 24);
             label2.Margin = new Padding(2, 0, 2, 0);
             label2.Name = "label2";
-            label2.Size = new Size(32, 15);
+            label2.Size = new Size(33, 15);
             label2.TabIndex = 0;
             label2.Text = "Title:";
             // 
@@ -284,6 +284,7 @@
             chkConfirmDelete.TabIndex = 17;
             chkConfirmDelete.Text = "Confirm Delete?";
             chkConfirmDelete.UseVisualStyleBackColor = true;
+            chkConfirmDelete.CheckedChanged += chkConfirmDelete_CheckedChanged;
             // 
             // btnClearAll
             // 
@@ -292,7 +293,7 @@
             btnClearAll.Name = "btnClearAll";
             btnClearAll.Size = new Size(162, 30);
             btnClearAll.TabIndex = 16;
-            btnClearAll.Text = "Delete Ticket";
+            btnClearAll.Text = "Clear All";
             btnClearAll.UseVisualStyleBackColor = true;
             // 
             // btnDeleleteTicket
@@ -304,6 +305,7 @@
             btnDeleleteTicket.TabIndex = 15;
             btnDeleleteTicket.Text = "Delete Ticket";
             btnDeleleteTicket.UseVisualStyleBackColor = true;
+            btnDeleleteTicket.Click += btnDeleleteTicket_Click;
             // 
             // groupBox3
             // 
@@ -327,7 +329,7 @@
             btnResetFilter.Location = new Point(364, 37);
             btnResetFilter.Margin = new Padding(2);
             btnResetFilter.Name = "btnResetFilter";
-            btnResetFilter.Size = new Size(99, 20);
+            btnResetFilter.Size = new Size(99, 24);
             btnResetFilter.TabIndex = 5;
             btnResetFilter.Text = "Reset Filter";
             btnResetFilter.UseVisualStyleBackColor = true;
@@ -337,7 +339,7 @@
             btnApplyFilter.Location = new Point(273, 37);
             btnApplyFilter.Margin = new Padding(2);
             btnApplyFilter.Name = "btnApplyFilter";
-            btnApplyFilter.Size = new Size(87, 20);
+            btnApplyFilter.Size = new Size(87, 24);
             btnApplyFilter.TabIndex = 4;
             btnApplyFilter.Text = "Apply Filter";
             btnApplyFilter.UseVisualStyleBackColor = true;

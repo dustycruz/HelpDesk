@@ -22,18 +22,23 @@ namespace HelpDesk.BLL
         {
             return _ticketRepository
                 .GetAll(status, category, keyword)
-                .Select(m => new DTO.Ticket 
-                { 
+                .Select(m => new DTO.Ticket
+                {
                     Id = m.Id,
                     IssueTitle = m.IssueTitle,
                     Description = m.Description,
                     Category = m.Category.Name,
                     AssignedEmployee = m.AssignedEmployee.FullName,
                     Status = m.Status,
-                    DateCreated = m.DateCreated
+                    DateCreated = m.DateCreated,
+
+                    // ✅ MISSING FIELDS (THIS WAS THE BUG)
+                    ResolutionNotes = m.ResolutionNotes,
+                    DateResolved = m.DateResolved
                 })
                 .ToList();
         }
+
 
         public (bool isOk, string message) Add(Model.Ticket ticket)
         {
@@ -93,7 +98,26 @@ namespace HelpDesk.BLL
 
         public (bool isOk, string message) Delete(int ticketId)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // Ensure ticket exists (concurrency-safe)
+                var exists = _ticketRepository
+                    .GetAll(null, null, null)
+                    .Any(t => t.Id == ticketId);
+
+                if (!exists)
+                    return (false, "Ticket no longer exists.");
+
+                // ✅ PASS ID, not object
+                _ticketRepository.Delete(ticketId);
+                _ticketRepository.Save();
+
+                return (true, "Ticket deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error deleting ticket: {ex.Message}");
+            }
         }
     }
 }
