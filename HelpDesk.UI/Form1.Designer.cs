@@ -61,6 +61,7 @@
             statusStrip1 = new StatusStrip();
             lblStatus = new ToolStripStatusLabel();
             lblCounts = new ToolStripStatusLabel();
+            toolStripStatusLabel1 = new ToolStripStatusLabel();
             groupBox1.SuspendLayout();
             groupBox2.SuspendLayout();
             groupBox3.SuspendLayout();
@@ -295,6 +296,7 @@
             btnClearAll.TabIndex = 16;
             btnClearAll.Text = "Clear All";
             btnClearAll.UseVisualStyleBackColor = true;
+            btnClearAll.Click += btnClearAll_Click;
             // 
             // btnDeleleteTicket
             // 
@@ -333,6 +335,7 @@
             btnResetFilter.TabIndex = 5;
             btnResetFilter.Text = "Reset Filter";
             btnResetFilter.UseVisualStyleBackColor = true;
+            btnResetFilter.Click += btnResetFilter_Click;
             // 
             // btnApplyFilter
             // 
@@ -343,6 +346,7 @@
             btnApplyFilter.TabIndex = 4;
             btnApplyFilter.Text = "Apply Filter";
             btnApplyFilter.UseVisualStyleBackColor = true;
+            btnApplyFilter.Click += btnApplyFilter_Click;
             // 
             // cmbFilterStatus
             // 
@@ -352,6 +356,7 @@
             cmbFilterStatus.Name = "cmbFilterStatus";
             cmbFilterStatus.Size = new Size(129, 23);
             cmbFilterStatus.TabIndex = 3;
+            cmbFilterStatus.SelectedIndexChanged += cmbFilterStatus_SelectedIndexChanged;
             // 
             // label10
             // 
@@ -371,6 +376,7 @@
             cmbFilterCategory.Name = "cmbFilterCategory";
             cmbFilterCategory.Size = new Size(129, 23);
             cmbFilterCategory.TabIndex = 1;
+            cmbFilterCategory.SelectedIndexChanged += cmbFilterCategory_SelectedIndexChanged;
             // 
             // label9
             // 
@@ -389,20 +395,21 @@
             dgTickets.Margin = new Padding(2);
             dgTickets.Name = "dgTickets";
             dgTickets.RowHeadersWidth = 62;
-            dgTickets.Size = new Size(470, 391);
+            dgTickets.Size = new Size(983, 391);
             dgTickets.TabIndex = 4;
             dgTickets.CellClick += dgTickets_CellClick;
             // 
             // statusStrip1
             // 
             statusStrip1.ImageScalingSize = new Size(24, 24);
-            statusStrip1.Items.AddRange(new ToolStripItem[] { lblStatus, lblCounts });
+            statusStrip1.Items.AddRange(new ToolStripItem[] { lblStatus, lblCounts, toolStripStatusLabel1 });
             statusStrip1.Location = new Point(0, 497);
             statusStrip1.Name = "statusStrip1";
             statusStrip1.Padding = new Padding(1, 0, 10, 0);
-            statusStrip1.Size = new Size(923, 22);
+            statusStrip1.Size = new Size(1439, 22);
             statusStrip1.TabIndex = 5;
             statusStrip1.Text = "statusStrip1";
+            statusStrip1.ItemClicked += statusStrip1_ItemClicked;
             // 
             // lblStatus
             // 
@@ -414,11 +421,17 @@
             lblCounts.Name = "lblCounts";
             lblCounts.Size = new Size(0, 17);
             // 
+            // toolStripStatusLabel1
+            // 
+            toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+            toolStripStatusLabel1.Size = new Size(39, 17);
+            toolStripStatusLabel1.Text = "Status";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(923, 519);
+            ClientSize = new Size(1439, 519);
             Controls.Add(statusStrip1);
             Controls.Add(dgTickets);
             Controls.Add(groupBox3);
@@ -478,5 +491,6 @@
         private StatusStrip statusStrip1;
         private ToolStripStatusLabel lblStatus;
         private ToolStripStatusLabel lblCounts;
+        private ToolStripStatusLabel toolStripStatusLabel1;
     }
 }

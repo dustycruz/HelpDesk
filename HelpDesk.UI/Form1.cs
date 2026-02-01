@@ -10,10 +10,9 @@ namespace HelpDesk.UI
         private readonly ITicketService _ticketService;
         private readonly ITicketCategoryRepository _ticketCategoryRepository;
         private readonly IEmployeeRepository _employeeRepository;
-        private DTO.Ticket _selectedTicket; // currently selected DTO ticket
+        private DTO.Ticket _selectedTicket;
         private bool _isDirty = false;
-        private List<DTO.Ticket> _ticketList; // tracks current tickets in DataGridView
-
+        private List<DTO.Ticket> _ticketList;
 
         public Form1(
             ITicketService ticketService,
@@ -42,18 +41,34 @@ namespace HelpDesk.UI
             cmbAssignedTo.DisplayMember = "FullName";
             cmbAssignedTo.ValueMember = "Id";
 
+            cmbStatus.Items.Clear();
             cmbStatus.Items.AddRange(new string[] { "New", "In-Progress", "Resolved", "Closed" });
             cmbStatus.SelectedIndex = 0;
+
+            var categories = _ticketCategoryRepository.GetAll().ToList();
+            categories.Insert(0, new TicketCategory { Id = 0, Name = "All" });
+
+            cmbFilterCategory.DataSource = categories;
+            cmbFilterCategory.DisplayMember = "Name";
+            cmbFilterCategory.ValueMember = "Id";
+
+            var statuses = _ticketService
+                            .GetAll(null, null, null)
+                            .Select(t => t.Status)
+                            .Distinct()
+                            .ToList();
+
+            statuses.Insert(0, "All");
+
+            cmbFilterStatus.DataSource = statuses;
         }
 
         private void LoadTickets()
         {
-            // Store DTOs in the in-memory list
             _ticketList = _ticketService.GetAll(null, null, null).ToList();
-
             dgTickets.AutoGenerateColumns = true;
-            dgTickets.DataSource = null;      // reset binding
-            dgTickets.DataSource = _ticketList; // bind to in-memory list
+            dgTickets.DataSource = null;
+            dgTickets.DataSource = _ticketList;
             dgTickets.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgTickets.ReadOnly = true;
             dgTickets.AllowUserToAddRows = false;
@@ -68,29 +83,21 @@ namespace HelpDesk.UI
                 CategoryId = Convert.ToInt32(cmbCategory.SelectedValue),
                 AssignedEmployeeId = Convert.ToInt32(cmbAssignedTo.SelectedValue),
                 Status = cmbStatus.Text,
-
-                // ? THIS IS THE FIX
-                ResolutionNotes = string.IsNullOrWhiteSpace(txtResolution.Text)
-                                    ? null
-                                    : txtResolution.Text
+                ResolutionNotes = string.IsNullOrWhiteSpace(txtResolution.Text) ? null : txtResolution.Text
             };
 
             var result = _ticketService.Add(ticket);
 
             if (!result.isOk)
             {
-                MessageBox.Show(result.message);
+                toolStripStatusLabel1.Text = result.message;
                 return;
             }
 
-            MessageBox.Show(result.message);
+            toolStripStatusLabel1.Text = result.message;
             LoadDefaultValues();
             LoadTickets();
         }
-
-
-
-
 
         private void dgTickets_CellClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -98,7 +105,6 @@ namespace HelpDesk.UI
 
             int id = Convert.ToInt32(dgTickets.Rows[e.RowIndex].Cells[0].Value);
 
-            // ?? If clicking the same row again ? deselect
             if (_selectedTicket != null && _selectedTicket.Id == id)
             {
                 dgTickets.ClearSelection();
@@ -106,7 +112,6 @@ namespace HelpDesk.UI
                 _isDirty = false;
                 btnUpdateTicket.Enabled = false;
 
-                // Clear controls
                 txtIssueTitle.Clear();
                 txtDescription.Clear();
                 txtResolution.Clear();
@@ -116,16 +121,14 @@ namespace HelpDesk.UI
                 return;
             }
 
-            // ?? Select new ticket
             _selectedTicket = _ticketList.FirstOrDefault(t => t.Id == id);
 
             if (_selectedTicket == null)
             {
-                MessageBox.Show("Ticket not found.");
+                toolStripStatusLabel1.Text = "Ticket not found.";
                 return;
             }
 
-            // Populate controls
             txtIssueTitle.Text = _selectedTicket.IssueTitle;
             txtDescription.Text = _selectedTicket.Description;
             cmbCategory.Text = _selectedTicket.Category;
@@ -137,7 +140,6 @@ namespace HelpDesk.UI
             btnUpdateTicket.Enabled = false;
             _isDirty = false;
 
-            // Capture original values
             string origTitle = txtIssueTitle.Text;
             string origDesc = txtDescription.Text;
             string origCategory = cmbCategory.Text;
@@ -160,7 +162,6 @@ namespace HelpDesk.UI
                 btnUpdateTicket.Enabled = _isDirty;
             }
 
-            // Attach handlers
             txtIssueTitle.TextChanged += (_, __) => EnableIfChanged();
             txtDescription.TextChanged += (_, __) => EnableIfChanged();
             cmbCategory.SelectedIndexChanged += (_, __) => EnableIfChanged();
@@ -169,28 +170,36 @@ namespace HelpDesk.UI
             txtResolution.TextChanged += (_, __) => EnableIfChanged();
             dateTimePicker1.ValueChanged += (_, __) => EnableIfChanged();
         }
+
         private void btnUpdateTicket_Click(object sender, EventArgs e)
         {
             if (_selectedTicket == null)
             {
-                MessageBox.Show("Please select a ticket first.");
+                toolStripStatusLabel1.Text = "Please select a ticket first.";
+                return;
+            }
+
+            var ticket = _ticketList.First(t => t.Id == _selectedTicket.Id);
+
+            if (ticket == null)
+            {
+                toolStripStatusLabel1.Text = "Ticket not found in grid.";
                 return;
             }
 
             string status = cmbStatus.Text;
 
-            // ?? RESOLVE RULES
             if (status == "Resolved" || status == "Closed")
             {
                 if (string.IsNullOrWhiteSpace(cmbAssignedTo.Text))
                 {
-                    MessageBox.Show("Assigned employee is required to resolve a ticket.");
+                    toolStripStatusLabel1.Text = "Assigned employee is required to resolve a ticket.";
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(txtResolution.Text))
                 {
-                    MessageBox.Show("Resolution notes must not be empty.");
+                    toolStripStatusLabel1.Text = "Resolution notes must not be empty.";
                     return;
                 }
 
@@ -198,54 +207,44 @@ namespace HelpDesk.UI
 
                 if (resolvedDate < dateTimePicker1.Value)
                 {
-                    MessageBox.Show("Date Resolved cannot be earlier than Date Created.");
+                    toolStripStatusLabel1.Text = "Date Resolved cannot be earlier than Date Created.";
                     return;
                 }
 
-                // ? Apply resolve data
-                _selectedTicket.DateResolved = resolvedDate;
-                _selectedTicket.ResolutionNotes = txtResolution.Text;
+                ticket.DateResolved = resolvedDate;
+                ticket.ResolutionNotes = txtResolution.Text;
             }
             else
             {
-                // ?? Not resolved ? clear resolution info
-                _selectedTicket.DateResolved = null;
-                _selectedTicket.ResolutionNotes = null;
+                ticket.DateResolved = null;
+                ticket.ResolutionNotes = null;
             }
-
-            // ?? Update in-memory DTO
-            var ticket = _ticketList.First(t => t.Id == _selectedTicket.Id);
 
             ticket.IssueTitle = txtIssueTitle.Text;
             ticket.Description = txtDescription.Text;
             ticket.Category = cmbCategory.Text;
             ticket.AssignedEmployee = cmbAssignedTo.Text;
             ticket.Status = status;
-            ticket.ResolutionNotes = _selectedTicket.ResolutionNotes;
-            ticket.DateResolved = _selectedTicket.DateResolved;
             ticket.DateCreated = dateTimePicker1.Value;
 
-            // ?? Refresh grid
-            dgTickets.Refresh(); dgTickets.DataSource = null;
-            dgTickets.DataSource = _ticketList;
+            _selectedTicket = ticket;
 
+            dgTickets.InvalidateRow(dgTickets.CurrentRow?.Index ?? 0);
 
             btnUpdateTicket.Enabled = false;
             _isDirty = false;
 
-            MessageBox.Show("Ticket updated successfully.");
+            toolStripStatusLabel1.Text = "Ticket updated successfully.";
         }
-
 
         private void btnDeleleteTicket_Click(object sender, EventArgs e)
         {
             if (_selectedTicket == null)
             {
-                MessageBox.Show("Please select a ticket to delete.");
+                toolStripStatusLabel1.Text = "Please select a ticket to delete.";
                 return;
             }
 
-            // If confirmation checkbox is checked, ask for confirmation
             if (chkConfirmDelete.Checked)
             {
                 var confirm = MessageBox.Show(
@@ -258,34 +257,30 @@ namespace HelpDesk.UI
                     return;
             }
 
-            // ?? Concurrency check: ensure ticket still exists
             var existingTicket = _ticketService
                 .GetAll(null, null, null)
                 .FirstOrDefault(t => t.Id == _selectedTicket.Id);
 
             if (existingTicket == null)
             {
-                MessageBox.Show("This ticket was already deleted by another operation.");
+                toolStripStatusLabel1.Text = "This ticket was already deleted by another operation.";
                 LoadTickets();
                 _selectedTicket = null;
                 return;
             }
 
-            // ?? Delete from database
             var result = _ticketService.Delete(_selectedTicket.Id);
 
             if (!result.isOk)
             {
-                MessageBox.Show(result.message);
+                toolStripStatusLabel1.Text = result.message;
                 return;
             }
 
-            // ?? Remove from in-memory list so DataGridView updates immediately
             _ticketList.RemoveAll(t => t.Id == _selectedTicket.Id);
             dgTickets.DataSource = null;
             dgTickets.DataSource = _ticketList;
 
-            // ?? Reset UI
             dgTickets.ClearSelection();
             _selectedTicket = null;
             btnUpdateTicket.Enabled = false;
@@ -296,21 +291,79 @@ namespace HelpDesk.UI
             cmbStatus.SelectedIndex = 0;
             dateTimePicker1.Value = DateTime.Now;
 
-            MessageBox.Show("Ticket deleted successfully.");
-
+            toolStripStatusLabel1.Text = "Ticket deleted successfully.";
         }
 
         private void chkConfirmDelete_CheckedChanged(object sender, EventArgs e)
         {
-            // Optional UX feedback (not required but helpful)
-            if (chkConfirmDelete.Checked)
+            btnDeleleteTicket.Text = chkConfirmDelete.Checked ? "Delete (Confirm)" : "Delete";
+        }
+
+        private void btnClearAll_Click(object sender, EventArgs e)
+        {
+            if (_ticketList == null || _ticketList.Count == 0)
             {
-                btnDeleleteTicket.Text = "Delete (Confirm)";
+                toolStripStatusLabel1.Text = "There are no tickets to clear.";
+                return;
             }
-            else
+
+            var confirm = MessageBox.Show(
+                "Delete ALL tickets?",
+                "Confirm Clear All",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (confirm != DialogResult.Yes)
+                return;
+
+            foreach (var t in _ticketList.ToList())
             {
-                btnDeleleteTicket.Text = "Delete";
+                var result = _ticketService.Delete(t.Id);
+                if (!result.isOk)
+                {
+                    toolStripStatusLabel1.Text = $"Failed to delete ticket {t.Id}: {result.message}";
+                    return;
+                }
             }
+
+            LoadTickets();
+
+            toolStripStatusLabel1.Text = "All tickets deleted successfully.";
+        }
+
+        private void cmbFilterCategory_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void cmbFilterStatus_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnApplyFilter_Click(object sender, EventArgs e)
+        {
+            string? status = cmbFilterStatus.Text == "All" ? null : cmbFilterStatus.Text;
+
+            int? categoryId = null;
+            if (cmbFilterCategory.Text != "All" && cmbFilterCategory.SelectedValue != null)
+                categoryId = Convert.ToInt32(cmbFilterCategory.SelectedValue);
+
+            _ticketList = _ticketService.GetAll(status, categoryId, null);
+
+            dgTickets.DataSource = null;
+            dgTickets.DataSource = _ticketList;
+        }
+
+        private void btnResetFilter_Click(object sender, EventArgs e)
+        {
+            cmbFilterCategory.SelectedIndex = 0;
+            cmbFilterStatus.SelectedIndex = 0;
+            LoadTickets();
+        }
+
+        private void statusStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
 
         }
     }
